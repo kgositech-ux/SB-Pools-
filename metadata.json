@@ -1,0 +1,6 @@
+{
+  "name": "Sello Pools - New Pools, Renovations & Maintenance",
+  "description": "Sello Pools builds new fibreglass pools and renovates existing ones in Pretoria and surrounds. Pump and sand filter always included with live quotation tracking and technician dispatch.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

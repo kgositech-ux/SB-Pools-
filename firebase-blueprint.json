@@ -1,0 +1,127 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role and contact information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 512 },
+        "role": { "type": "string", "enum": ["admin", "technician", "customer"] },
+        "phone": { "type": "string", "maxLength": 32 },
+        "suburb": { "type": "string", "maxLength": 128 },
+        "address": { "type": "string", "maxLength": 256 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "AdminDoc": {
+      "title": "AdminDoc",
+      "description": "Identifies authenticated administrators",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "role": { "type": "string", "enum": ["admin"] },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["userId", "email", "role"]
+    },
+    "PoolProfile": {
+      "title": "PoolProfile",
+      "description": "Customer pool specifications and equipment details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 128 },
+        "poolName": { "type": "string", "maxLength": 128 },
+        "address": { "type": "string", "maxLength": 256 },
+        "poolType": { "type": "string", "enum": ["in_ground_chlorine", "saltwater", "fiberglass", "above_ground", "commercial"] },
+        "volumeGallons": { "type": "number" },
+        "filtrationType": { "type": "string", "maxLength": 64 },
+        "sanitizerType": { "type": "string", "maxLength": 64 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "customerId", "poolName", "address", "poolType", "volumeGallons"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Customer pool maintenance appointment booking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 128 },
+        "customerEmail": { "type": "string", "maxLength": 256 },
+        "customerPhone": { "type": "string", "maxLength": 32 },
+        "address": { "type": "string", "maxLength": 256 },
+        "poolId": { "type": "string", "maxLength": 128 },
+        "poolType": { "type": "string", "maxLength": 64 },
+        "serviceType": { "type": "string", "enum": ["weekly_cleaning", "chemical_balance", "filter_deep_clean", "equipment_inspection", "pool_opening_closing", "green_to_clean"] },
+        "scheduledDate": { "type": "string", "maxLength": 64 },
+        "timeSlot": { "type": "string", "maxLength": 32 },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "in_progress", "completed", "cancelled"] },
+        "assignedTechnicianId": { "type": "string", "maxLength": 128 },
+        "assignedTechnicianName": { "type": "string", "maxLength": 128 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "price": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "customerId", "customerName", "address", "serviceType", "scheduledDate", "status"]
+    },
+    "TechnicianTask": {
+      "title": "TechnicianTask",
+      "description": "Detailed pool maintenance technician work task and chemical readings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "bookingId": { "type": "string", "maxLength": 128 },
+        "technicianId": { "type": "string", "maxLength": 128 },
+        "technicianName": { "type": "string", "maxLength": 128 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 128 },
+        "address": { "type": "string", "maxLength": 256 },
+        "serviceType": { "type": "string", "maxLength": 64 },
+        "scheduledDate": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["scheduled", "in_progress", "completed"] },
+        "checklist": { "type": "object" },
+        "chemicalReadings": { "type": "object" },
+        "photoUrls": { "type": "array" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "completedAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "bookingId", "technicianId", "customerId", "status", "scheduledDate"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles for pool owners, technicians, and administrators"
+    },
+    "/admins/{adminId}": {
+      "schema": "AdminDoc",
+      "description": "Admin document collection for authoritative RBAC checking"
+    },
+    "/pools/{poolId}": {
+      "schema": "PoolProfile",
+      "description": "Customer swimming pool equipment and physical specifications"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Customer pool maintenance appointment booking records and history"
+    },
+    "/tasks/{taskId}": {
+      "schema": "TechnicianTask",
+      "description": "Technician pool maintenance tasks, checklists, and chemical logs"
+    }
+  }
+}

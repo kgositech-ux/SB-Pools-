@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global helper primitives
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'servicewebsites6@gmail.com' ||
+        request.auth.token.email == 'workplacesheq@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Entity validation blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'email', 'role']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.email is string && data.email.size() <= 256 &&
+        data.role in ['admin', 'technician', 'customer'] &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 32)) &&
+        (!('suburb' in data) || (data.suburb is string && data.suburb.size() <= 128)) &&
+        (!('address' in data) || (data.address is string && data.address.size() <= 256)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidPool(data) {
+      return data.keys().hasAll(['id', 'customerId', 'poolName', 'address', 'poolType', 'volumeGallons']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.customerId is string && data.customerId.size() <= 128 &&
+        data.poolName is string && data.poolName.size() <= 128 &&
+        data.address is string && data.address.size() <= 256 &&
+        data.poolType in ['in_ground_chlorine', 'saltwater', 'fiberglass', 'above_ground', 'commercial'] &&
+        data.volumeGallons is number && data.volumeGallons > 0 && data.volumeGallons <= 5000000 &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll(['id', 'customerId', 'customerName', 'address', 'serviceType', 'scheduledDate', 'status']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.customerId is string && data.customerId.size() <= 128 &&
+        data.customerName is string && data.customerName.size() <= 128 &&
+        data.address is string && data.address.size() <= 256 &&
+        data.serviceType in ['weekly_cleaning', 'chemical_balance', 'filter_deep_clean', 'equipment_inspection', 'pool_opening_closing', 'green_to_clean'] &&
+        data.scheduledDate is string && data.scheduledDate.size() <= 64 &&
+        data.status in ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'] &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['id', 'bookingId', 'technicianId', 'customerId', 'status', 'scheduledDate']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.bookingId is string && data.bookingId.size() <= 128 &&
+        data.technicianId is string && data.technicianId.size() <= 128 &&
+        data.customerId is string && data.customerId.size() <= 128 &&
+        data.status in ['scheduled', 'in_progress', 'completed'] &&
+        data.scheduledDate is string && data.scheduledDate.size() <= 64 &&
+        (!('photoUrls' in data) || (data.photoUrls is list && data.photoUrls.size() <= 20)) &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    // Match rules for collections
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && (incoming().role != 'admin' || isAdmin());
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin()) && isValidUser(incoming()) && (isAdmin() || incoming().role == existing().role);
+      allow delete: if isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /pools/{poolId} {
+      allow get: if isSignedIn() && (resource.data.customerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.customerId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(poolId) && (isAdmin() || incoming().customerId == request.auth.uid) && isValidPool(incoming());
+      allow update: if isVerifiedUser() && isValidId(poolId) && isValidPool(incoming()) && (
+        isAdmin() ||
+        (existing().customerId == request.auth.uid && incoming().customerId == existing().customerId)
+      );
+      allow delete: if isAdmin() || (isVerifiedUser() && existing().customerId == request.auth.uid);
+    }
+
+    match /bookings/{bookingId} {
+      allow get: if isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.assignedTechnicianId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.assignedTechnicianId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(bookingId) && (isAdmin() || incoming().customerId == request.auth.uid) && isValidBooking(incoming());
+      allow update: if isVerifiedUser() && isValidId(bookingId) && isValidBooking(incoming()) && (
+        isAdmin() ||
+        (existing().customerId == request.auth.uid && incoming().customerId == existing().customerId && !(existing().status in ['completed', 'cancelled'])) ||
+        (existing().assignedTechnicianId == request.auth.uid && incoming().customerId == existing().customerId)
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow get: if isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.technicianId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.technicianId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(taskId) && (isAdmin() || incoming().technicianId == request.auth.uid) && isValidTask(incoming());
+      allow update: if isVerifiedUser() && isValidId(taskId) && isValidTask(incoming()) && (
+        isAdmin() ||
+        (existing().technicianId == request.auth.uid && incoming().technicianId == existing().technicianId && incoming().customerId == existing().customerId)
+      );
+      allow delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f4fafb;
+  --surface: #ffffff;
+  --ink: #0a2a3a;
+  --muted: #496776;
+  --line: #cfe3e8;
+  --deep: #06364d;
+  --aqua: #1bb6d4;
+  --lime: #3fae49;
+  --on-deep: #eaf8fb;
+}
+
+[data-theme="dark"],
+.dark {
+  --bg: #06202c;
+  --surface: #0b3042;
+  --ink: #e6f6fa;
+  --muted: #9bbcc8;
+  --line: #1a4a5e;
+  --deep: #031820;
+  --on-deep: #eaf8fb;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: 'Figtree', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Bricolage Grotesque', Georgia, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Animations */
+@keyframes drift {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(6%);
+  }
+}
+
+.caustic-1 {
+  animation: drift 14s ease-in-out infinite alternate;
+}
+
+.caustic-2 {
+  animation: drift 19s ease-in-out infinite alternate-reverse;
+}
+
+/* Custom switch */
+.sw-toggle {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.28);
+  transition: background 0.2s;
+}
+
+.sw-toggle::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.2s;
+}
+
+input:checked + .sw-toggle {
+  background: var(--lime);
+}
+
+input:checked + .sw-toggle::after {
+  transform: translateX(16px);
+}
